@@ -428,6 +428,8 @@ CppGenerator::FunctionInfo CppGenerator::GenerateFunctionInfo(const FunctionWrap
 	return RetFuncInfo;
 }
 
+static std::unordered_set<std::string> EmittedParamStructs;
+
 std::string CppGenerator::GenerateSingleFunction(const FunctionWrapper& Func, const std::string& StructName, StreamType& FunctionFile, StreamType& ParamFile, StreamType& AssertionFile, bool bForceImplementerDispatch)
 {
 	namespace CppSettings = Settings::CppGenerator;
@@ -474,11 +476,15 @@ std::string CppGenerator::GenerateSingleFunction(const FunctionWrapper& Func, co
 
 	if (!Func.IsPredefined() && Func.GetParamStructSize() > 0x0)
 	{
-		static std::unordered_set<std::string> EmittedParamStructs;
 		const std::string DedupKey = std::format("{:X}|{}", reinterpret_cast<uintptr_t>(&ParamFile), ParamStructName);
 		
 		if (EmittedParamStructs.insert(DedupKey).second)
+		{
+			const std::string Guard = "DUMPER7_PARAM_DEFINED_" + ParamStructName;
+			ParamFile << "#ifndef " << Guard << "\n#define " << Guard << "\n";
 			GenerateStruct(Func.AsStruct(), ParamFile, FunctionFile, ParamFile, AssertionFile, -1, ParamStructName);
+			ParamFile << "#endif // " << Guard << "\n";
+		}
 	}
 
 
@@ -1971,6 +1977,7 @@ void CppGenerator::Generate()
 	// Generates all packages and writes them to files
 	for (PackageInfoHandle Package : PackageManager::IterateOverPackageInfos())
 	{
+		EmittedParamStructs.clear();
 		if (Package.IsEmpty())
 			continue;
 
