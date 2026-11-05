@@ -986,7 +986,8 @@ void IDAMappingGenerator::Generate()
 		}
 		else if (Obj.IsA(EClassCastFlags::Class))
 		{
-			GenerateClassFunctions(ExecFuncData, NameData, Obj.Cast<UEClass>());
+			try { GenerateClassFunctions(ExecFuncData, NameData, Obj.Cast<UEClass>()); }
+			catch (const std::out_of_range& e) { std::cerr << "[IDA] Skipped class index " << Obj.GetIndex() << ": " << e.what() << std::endl; }
 		}
 	}
 
